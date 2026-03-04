@@ -23,13 +23,13 @@ TRIGGER_PHRASES = {
 }
 
 # Assertive signal words that increase confidence
-ASSERTIVE_SIGNALS = ["is out", "has been deployed", "we have", "confirmed", "it's a", "there is a"]
+ASSERTIVE_SIGNALS = ["is out", "has been deployed", "we have", "we've got", "confirmed", "it's a", "there is a"]
 
 # Speculative words that block a trigger
 SPECULATIVE_WORDS = ["might", "could", "maybe", "possibly", "perhaps"]
 
 # Cooldown in seconds per event type
-COOLDOWN_SECONDS = 90
+COOLDOWN_SECONDS = 25
 
 # --- State ---
 _last_triggered: dict[str, float] = {}
@@ -56,12 +56,15 @@ def process_transcript(text: str) -> str | None:
         is_assertive = any(signal in text_lower for signal in ASSERTIVE_SIGNALS)
 
         # Track mention times for confirmation window
+        # Count mentions within this single transcript too
+        phrase_count = text_lower.count(phrase)
+
         mentions = _recent_mentions.get(event_type, [])
         mentions = [t for t in mentions if now - t < CONFIRM_WINDOW_S]  # prune old
         mentions.append(now)
         _recent_mentions[event_type] = mentions
 
-        confirmed = is_assertive or len(mentions) >= 2
+        confirmed = is_assertive or len(mentions) >= 2 or phrase_count >= 2
 
         if not confirmed:
             continue
