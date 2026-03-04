@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "F1 Overlay — Race Explainer",
+  "version": "0.1.0",
+  "description": "Educational popups for new F1 viewers during live races.",
+  "permissions": [],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.f1tv.formula1.com/*",
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
+    }
+  ]
+}

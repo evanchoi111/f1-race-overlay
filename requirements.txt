@@ -1,0 +1,9 @@
+# Core
+openai-whisper
+websockets
+sounddevice
+numpy
+
+# Optional / alternatives
+# speechrecognition   # if using Google STT instead
+# pyaudio             # alternative audio capture

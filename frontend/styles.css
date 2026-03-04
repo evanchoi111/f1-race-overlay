@@ -1,0 +1,49 @@
+#f1-overlay-popup {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  width: 320px;
+  background: rgba(15, 15, 20, 0.95);
+  border: 1px solid #e10600;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  z-index: 99999;
+  box-shadow: 0 4px 24px rgba(225, 6, 0, 0.3);
+  animation: f1-slide-in 0.3s ease;
+}
+
+.f1-overlay-header {
+  background: #e10600;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 7px 7px 0 0;
+}
+
+.f1-overlay-body {
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+
+.f1-overlay-why {
+  margin-top: 8px;
+  color: #cccccc;
+}
+
+.f1-overlay-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+@keyframes f1-slide-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
