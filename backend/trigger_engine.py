@@ -5,39 +5,63 @@ applies confidence rules, and enforces cooldown timers.
 """
 
 import time
+from typing import Optional, Dict, List
 
 # --- Phrase definitions ---
 # Map trigger keywords to their canonical event type
 TRIGGER_PHRASES = {
-    "yellow flag":        "yellow_flag",
-    "double yellow":      "yellow_flag",
-    "safety car":         "safety_car",
-    "virtual safety car": "virtual_safety_car",
-    "red flag":           "red_flag",
-    "pit stop":           "pit_stop",
-    "into the pits":      "pit_stop",
-    "penalty":            "penalty",
-    "drive-through":      "penalty",
-    "five-second penalty":"penalty",
-    "investigation":      "investigation",
+    "yellow flag":             "yellow_flag",
+    "double yellow":           "yellow_flag",
+    "safety car":              "safety_car",
+    "virtual safety car":      "virtual_safety_car",
+    "red flag":                "red_flag",
+    "pit stop":                "pit_stop",
+    "into the pits":           "pit_stop",
+    "comes into the pits":     "pit_stop",
+    "heading into the pits":   "pit_stop",
+    "penalty":                 "penalty",
+    "drive-through":           "penalty",
+    "five-second penalty":     "penalty",
+    "investigation":           "investigation",
 }
 
 # Assertive signal words that increase confidence
-ASSERTIVE_SIGNALS = ["is out", "has been deployed", "we have", "we've got", "confirmed", "it's a", "there is a"]
+ASSERTIVE_SIGNALS = [
+    "is out",
+    "has been deployed",
+    "is deployed",
+    "is finally deployed",
+    "we have",
+    "we've got",
+    "confirmed",
+    "it's a",
+    "it is a",
+    "there is a",
+    "there's a",
+    "is ending",
+    "comes into",
+    "heading into",
+    "is interrupted",
+    "has been shown",
+    "is waving",
+    "are waving",
+    "is out in",
+    "we see a",
+]
 
 # Speculative words that block a trigger
 SPECULATIVE_WORDS = ["might", "could", "maybe", "possibly", "perhaps"]
 
 # Cooldown in seconds per event type
-COOLDOWN_SECONDS = 25
+COOLDOWN_SECONDS = 10
 
 # --- State ---
-_last_triggered: dict[str, float] = {}
-_recent_mentions: dict[str, list[float]] = {}
+_last_triggered: Dict[str, float] = {}
+_recent_mentions: Dict[str, List[float]] = {}
 CONFIRM_WINDOW_S = 15  # seconds within which a second mention confirms the event
 
 
-def process_transcript(text: str) -> str | None:
+def process_transcript(text: str) -> Optional[str]:
     """
     Given a transcript string, return an event type string if a trigger
     fires, or None if no trigger should fire.
@@ -49,13 +73,12 @@ def process_transcript(text: str) -> str | None:
     if any(word in text_lower for word in SPECULATIVE_WORDS):
         return None
 
-    for phrase, event_type in TRIGGER_PHRASES.items():
+    for phrase, event_type in sorted(TRIGGER_PHRASES.items(), key=lambda x: len(x[0]), reverse=True):
         if phrase not in text_lower:
             continue
 
         is_assertive = any(signal in text_lower for signal in ASSERTIVE_SIGNALS)
 
-        # Track mention times for confirmation window
         # Count mentions within this single transcript too
         phrase_count = text_lower.count(phrase)
 

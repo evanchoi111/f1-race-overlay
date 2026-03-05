@@ -24,6 +24,8 @@ PORT = 8765
 # --- State ---
 CONNECTED_CLIENTS = set()
 model = None
+loop = None
+trigger_queue = None
 
 
 # ── WebSocket handler ────────────────────────────────────────────────────────
@@ -65,11 +67,6 @@ async def broadcast(event_type: str):
 
 # ── Audio pipeline ───────────────────────────────────────────────────────────
 
-# We use a thread-safe queue to pass trigger events from the
-# audio thread into the asyncio event loop
-trigger_queue = asyncio.Queue()
-
-
 def on_audio_chunk(audio):
     """
     Called from the audio capture thread for each chunk.
@@ -105,7 +102,10 @@ def start_audio_thread(stop_event):
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 async def main():
-    global model, loop
+    global model, loop, trigger_queue
+
+    # Create the queue inside the running event loop
+    trigger_queue = asyncio.Queue()
     loop = asyncio.get_running_loop()
 
     print("[Server] Loading Whisper model...")

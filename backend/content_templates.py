@@ -1,3 +1,4 @@
+from typing import Optional
 """
 content_templates.py
 Maps event types to popup content: title, definition, and why it matters.
@@ -41,5 +42,5 @@ TEMPLATES: dict[str, dict] = {
     },
 }
 
-def get_template(event_type: str) -> dict | None:
+def get_template(event_type: str) -> Optional[dict]:
     return TEMPLATES.get(event_type)
