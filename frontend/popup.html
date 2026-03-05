@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>F1 Overlay Mode</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <div class="top-stripe"></div>
+      <header class="head">
+        <p class="kicker">Race Control</p>
+        <h1>Audio Source</h1>
+      </header>
+
+      <label class="mode-card">
+        <input type="radio" name="audio-mode" value="tab" />
+        <span class="card-text">
+          <strong>Tab Audio</strong>
+          <small>Best for headphones and direct stream capture.</small>
+        </span>
+      </label>
+
+      <label class="mode-card">
+        <input type="radio" name="audio-mode" value="mic" />
+        <span class="card-text">
+          <strong>Mic Fallback</strong>
+          <small>Use microphone/system input when tab capture is unavailable.</small>
+        </span>
+      </label>
+
+      <p id="status" class="status" aria-live="polite"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

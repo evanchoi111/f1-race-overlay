@@ -1,0 +1,137 @@
+:root {
+  --bg: #07090d;
+  --surface: #10151d;
+  --surface-2: #0d1219;
+  --fg: #f2f4f8;
+  --muted: #98a3b6;
+  --accent: #e10600;
+  --accent-2: #ff3b30;
+  --line: #252d3b;
+  --ok: #68d391;
+  --error: #ff7b72;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(225, 6, 0, 0.18), transparent 58%),
+    linear-gradient(180deg, #0c1118 0%, var(--bg) 100%);
+  color: var(--fg);
+  font: 14px/1.4 "Eurostile", "Avenir Next Condensed", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.panel {
+  width: 292px;
+  padding: 0 12px 12px;
+  box-sizing: border-box;
+}
+
+.top-stripe {
+  height: 5px;
+  margin: 0 -12px 10px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 55%, #ff6f66 100%);
+}
+
+h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.head {
+  margin: 0 0 12px;
+}
+
+.kicker {
+  margin: 0 0 3px;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+
+.mode-card {
+  display: flex;
+  gap: 10px;
+  margin: 9px 0;
+  padding: 11px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 38%),
+    linear-gradient(180deg, var(--surface), var(--surface-2));
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.mode-card:hover {
+  transform: translateY(-1px);
+  border-color: #3a465a;
+}
+
+input[type="radio"] {
+  margin-top: 1px;
+  accent-color: var(--accent);
+}
+
+.card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-text strong {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.card-text small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.mode-card:has(input:checked) {
+  border-color: color-mix(in srgb, var(--accent) 74%, white 26%);
+  box-shadow: 0 0 0 1px rgba(225, 6, 0, 0.24), 0 10px 20px rgba(0, 0, 0, 0.28);
+  background:
+    linear-gradient(135deg, rgba(225, 6, 0, 0.1) 0%, transparent 42%),
+    linear-gradient(180deg, #141b26, #10161f);
+}
+
+.mode-card:has(input:checked)::before {
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
+.status {
+  min-height: 17px;
+  margin: 12px 2px 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.status.ok {
+  color: var(--ok);
+}
+
+.status.error {
+  color: var(--error);
+}

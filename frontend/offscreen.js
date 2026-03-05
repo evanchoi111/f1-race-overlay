@@ -12,6 +12,7 @@ const CHUNK_DURATION_MS = 5000;
 
 let socket = null;
 let reconnectTimer = null;
+let shouldReconnect = false;
 
 let currentTabId = null;
 let stream = null;
@@ -29,35 +30,11 @@ function notifyError(error) {
   });
 }
 
-function connectWebSocket() {
-  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
-    return;
+function clearReconnectTimer() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
   }
-
-  socket = new WebSocket(WS_URL);
-
-  socket.onopen = () => {
-    socket.send(JSON.stringify({ type: "source", value: "browser" }));
-  };
-
-  socket.onmessage = (msg) => {
-    try {
-      const data = JSON.parse(msg.data);
-      if (data.title) {
-        chrome.runtime.sendMessage({ type: "popup", data });
-      }
-    } catch (err) {
-      notifyError(err);
-    }
-  };
-
-  socket.onclose = () => {
-    reconnectTimer = setTimeout(connectWebSocket, 3000);
-  };
-
-  socket.onerror = () => {
-    // onclose handles retry
-  };
 }
 
 function float32ToBase64(float32Array) {
@@ -70,6 +47,39 @@ function float32ToBase64(float32Array) {
   }
 
   return btoa(binary);
+}
+
+function connectWebSocket() {
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  socket = new WebSocket(WS_URL);
+
+  socket.onopen = () => {
+    socket.send(JSON.stringify({ type: "source", value: "browser" }));
+  };
+
+  socket.onclose = () => {
+    socket = null;
+    if (shouldReconnect) {
+      reconnectTimer = setTimeout(connectWebSocket, 3000);
+    }
+  };
+
+  socket.onerror = () => {
+    // onclose handles retry
+  };
+}
+
+function closeWebSocket() {
+  shouldReconnect = false;
+  clearReconnectTimer();
+
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    socket.close();
+  }
+  socket = null;
 }
 
 function sendChunk(chunk) {
@@ -113,6 +123,8 @@ async function stopCapture() {
     stream = null;
   }
 
+  closeWebSocket();
+
   sampleBuffer = [];
   currentTabId = null;
   capturing = false;
@@ -124,12 +136,11 @@ async function startCapture(tabId, streamId) {
   }
 
   if (capturing) {
-    if (currentTabId === tabId) {
-      return;
-    }
+    if (currentTabId === tabId) return;
     await stopCapture();
   }
 
+  shouldReconnect = true;
   connectWebSocket();
 
   stream = await navigator.mediaDevices.getUserMedia({
@@ -181,5 +192,3 @@ chrome.runtime.onMessage.addListener((message) => {
     stopCapture().catch(notifyError);
   }
 });
-
-connectWebSocket();

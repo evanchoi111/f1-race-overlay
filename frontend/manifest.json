@@ -6,6 +6,7 @@
   "permissions": [
     "tabCapture",
     "offscreen",
+    "storage",
     "tabs",
     "scripting"
   ],
@@ -23,6 +24,7 @@
     }
   ],
   "action": {
-    "default_title": "F1 Overlay"
+    "default_title": "F1 Overlay",
+    "default_popup": "popup.html"
   }
 }

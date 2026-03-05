@@ -1,13 +1,15 @@
 /**
  * content.js
- * Injected into pages to request tab capture and render popup events.
+ * Injected into pages to request capture and render popup events.
  */
 
-let captureStarted = false;
+const WS_URL = "ws://localhost:8765";
+let socket = null;
+let captureRequested = false;
 
 function requestCapture() {
-  if (captureStarted) return;
-  captureStarted = true;
+  if (captureRequested) return;
+  captureRequested = true;
   chrome.runtime.sendMessage({ type: "start_capture" });
 }
 
@@ -17,11 +19,29 @@ function requestCaptureIfVisibleTopFrame() {
   requestCapture();
 }
 
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === "popup") {
-    showPopup(message.data);
+function connectPopupWebSocket() {
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return;
   }
-});
+
+  socket = new WebSocket(WS_URL);
+
+  socket.onmessage = (msg) => {
+    try {
+      const data = JSON.parse(msg.data);
+      if (data.title) {
+        showPopup(data);
+      }
+    } catch {
+      // Ignore malformed payloads
+    }
+  };
+
+  socket.onclose = () => {
+    socket = null;
+    setTimeout(connectPopupWebSocket, 3000);
+  };
+}
 
 function showPopup({ title, definition, why_it_matters }) {
   document.getElementById("f1-overlay-popup")?.remove();
@@ -45,4 +65,5 @@ document.addEventListener("visibilitychange", () => {
   requestCaptureIfVisibleTopFrame();
 });
 
+connectPopupWebSocket();
 requestCaptureIfVisibleTopFrame();

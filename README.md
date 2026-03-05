@@ -90,8 +90,10 @@ Once loaded, the extension will automatically connect to the backend WebSocket s
 
 1. Start the backend with `python websocket_server.py`
 2. Open any F1 stream in Chrome (F1 TV, YouTube, etc.)
-3. Play any F1 stream in that tab (speakers or headphones both work)
-4. If capture does not start automatically, click the extension icon once on that tab
+3. Click the extension icon and choose an audio mode:
+   - `Tab audio` = capture stream audio directly (headphones supported)
+   - `Mic fallback` = use your mic/system input path
+4. Play any F1 stream in that tab
 5. When a flag or event is detected, a popup appears automatically
 
 ---
