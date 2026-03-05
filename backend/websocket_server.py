@@ -1,7 +1,8 @@
 """
 websocket_server.py
-Ties everything together: captures audio → transcribes → checks triggers
-→ broadcasts popup events to all connected WebSocket clients (Chrome extension).
+Ties everything together:
+- Captures mic audio (fallback) OR receives browser tab audio (default)
+- Transcribes -> checks triggers -> broadcasts popup events to Chrome extension
 
 Run this to start the full backend:
     python websocket_server.py
@@ -10,6 +11,8 @@ Run this to start the full backend:
 import asyncio
 import json
 import threading
+import base64
+import numpy as np
 import websockets
 
 from audio_capture import start_capture
@@ -23,23 +26,69 @@ PORT = 8765
 
 # --- State ---
 CONNECTED_CLIENTS = set()
+BROWSER_CLIENTS = set()   # clients sending audio from tab capture
 model = None
 loop = None
 trigger_queue = None
+browser_audio_connected = False
 
 
-# ── WebSocket handler ────────────────────────────────────────────────────────
+# -- WebSocket handler --------------------------------------------------------
 
 async def handler(websocket):
-    """Handle a new Chrome extension client connecting."""
+    global browser_audio_connected
+
     CONNECTED_CLIENTS.add(websocket)
     client = websocket.remote_address
-    print(f"[WS] Client connected: {client} — Total: {len(CONNECTED_CLIENTS)}")
+    print(f"[WS] Client connected: {client} - Total: {len(CONNECTED_CLIENTS)}")
+
     try:
-        await websocket.wait_closed()
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+            except Exception:
+                continue
+
+            # Client identifying itself as a browser audio source
+            if data.get("type") == "source" and data.get("value") == "browser":
+                BROWSER_CLIENTS.add(websocket)
+                browser_audio_connected = True
+                print("[WS] Browser audio source connected - mic fallback disabled.")
+
+            # Incoming audio chunk from browser tab capture
+            elif data.get("type") == "audio":
+                raw = base64.b64decode(data["data"])
+                audio = np.frombuffer(raw, dtype=np.float32).copy()
+                sample_rate = data.get("sample_rate", 16000)
+
+                # Process in background thread to avoid blocking the event loop
+                await loop.run_in_executor(
+                    None, process_audio_chunk, audio, sample_rate
+                )
+
+            # Incoming popup event (legacy direct connection)
+            elif data.get("title"):
+                pass  # handled by broadcast
+
+    except websockets.exceptions.ConnectionClosed:
+        pass
     finally:
         CONNECTED_CLIENTS.discard(websocket)
-        print(f"[WS] Client disconnected: {client} — Total: {len(CONNECTED_CLIENTS)}")
+        BROWSER_CLIENTS.discard(websocket)
+        if not BROWSER_CLIENTS:
+            browser_audio_connected = False
+            print("[WS] Browser audio source disconnected - mic fallback enabled.")
+        print(f"[WS] Client disconnected: {client} - Total: {len(CONNECTED_CLIENTS)}")
+
+
+def process_audio_chunk(audio: np.ndarray, sample_rate: int = 16000):
+    """Process an audio chunk from the browser and fire triggers."""
+    text = transcribe(audio, sample_rate)
+    if not text:
+        return
+    event = process_transcript(text)
+    if event:
+        asyncio.run_coroutine_threadsafe(trigger_queue.put(event), loop)
 
 
 async def broadcast(event_type: str):
@@ -65,46 +114,39 @@ async def broadcast(event_type: str):
     )
 
 
-# ── Audio pipeline ───────────────────────────────────────────────────────────
+# -- Mic audio pipeline (fallback) -------------------------------------------
 
-def on_audio_chunk(audio):
-    """
-    Called from the audio capture thread for each chunk.
-    Transcribes and checks for triggers, then queues any event.
-    """
+def on_mic_chunk(audio):
+    """Called from the mic capture thread. Only active if no browser source."""
+    if browser_audio_connected:
+        return  # browser audio takes priority
+
     text = transcribe(audio)
     if not text:
         return
 
     event = process_transcript(text)
     if event:
-        # Put the event into the asyncio queue from the background thread
-        asyncio.run_coroutine_threadsafe(
-            trigger_queue.put(event),
-            loop
-        )
+        asyncio.run_coroutine_threadsafe(trigger_queue.put(event), loop)
 
 
 async def trigger_dispatcher():
-    """
-    Async loop that reads from the trigger queue and broadcasts to clients.
-    """
+    """Reads from the trigger queue and broadcasts to clients."""
     while True:
         event = await trigger_queue.get()
         await broadcast(event)
 
 
-def start_audio_thread(stop_event):
-    """Run audio capture in a background thread."""
-    start_capture(on_audio_chunk, stop_event=stop_event)
+def start_mic_thread(stop_event):
+    """Run mic capture in a background thread as fallback."""
+    start_capture(on_mic_chunk, stop_event=stop_event)
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────
+# -- Main --------------------------------------------------------------------
 
 async def main():
     global model, loop, trigger_queue
 
-    # Create the queue inside the running event loop
     trigger_queue = asyncio.Queue()
     loop = asyncio.get_running_loop()
 
@@ -112,25 +154,23 @@ async def main():
     model = load_model("base")
     print("[Server] Model ready.")
 
-    # Start audio capture in a background thread
+    # Start mic capture as fallback in background thread
     stop_event = threading.Event()
-    audio_thread = threading.Thread(
-        target=start_audio_thread,
+    mic_thread = threading.Thread(
+        target=start_mic_thread,
         args=(stop_event,),
         daemon=True,
     )
-    audio_thread.start()
-    print("[Server] Audio capture started.")
+    mic_thread.start()
+    print("[Server] Mic capture started (fallback mode).")
 
-    # Start the trigger dispatcher
     asyncio.create_task(trigger_dispatcher())
 
-    # Start the WebSocket server
     async with websockets.serve(handler, HOST, PORT):
         print(f"[Server] WebSocket server running on ws://{HOST}:{PORT}")
         print("[Server] Waiting for Chrome extension to connect...")
         print("[Server] Press Ctrl+C to stop.\n")
-        await asyncio.Future()  # Run forever
+        await asyncio.Future()
 
 
 if __name__ == "__main__":

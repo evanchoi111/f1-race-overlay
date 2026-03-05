@@ -10,7 +10,7 @@ Built for new F1 fans who want to understand what's going on without having to p
 
 ## How It Works
 
-1. A local Python backend listens to your system audio using your microphone
+1. A local Python backend receives tab audio from the Chrome extension (with mic fallback)
 2. [OpenAI Whisper](https://github.com/openai/whisper) transcribes the F1 commentary in real time
 3. A trigger engine scans the transcript for key phrases ("yellow flag", "safety car deployed", "red flag", etc.)
 4. When a trigger fires, the backend broadcasts the event over a WebSocket
@@ -35,7 +35,7 @@ Live F1 commentary
 | Layer | Technology |
 |---|---|
 | Speech-to-text | OpenAI Whisper (base model, runs locally) |
-| Audio capture | sounddevice + numpy |
+| Audio capture | Chrome tab capture + sounddevice fallback |
 | Backend | Python, asyncio, websockets |
 | Frontend | Chrome Extension (Manifest V3), vanilla JS |
 
@@ -90,8 +90,9 @@ Once loaded, the extension will automatically connect to the backend WebSocket s
 
 1. Start the backend with `python websocket_server.py`
 2. Open any F1 stream in Chrome (F1 TV, YouTube, etc.)
-3. Play audio through your speakers — the backend listens via mic
-4. When a flag or event is detected, a popup appears automatically
+3. Play any F1 stream in that tab (speakers or headphones both work)
+4. If capture does not start automatically, click the extension icon once on that tab
+5. When a flag or event is detected, a popup appears automatically
 
 ---
 
@@ -111,7 +112,7 @@ Once loaded, the extension will automatically connect to the backend WebSocket s
 
 ## Roadmap
 
-- [ ] System audio capture (so it works with headphones, no mic needed)
+- [x] System/tab audio capture (works with headphones, no mic needed)
 - [ ] Beginner / minimal mode toggle in the extension
 - [ ] Support for more events (DRS enabled, fastest lap, etc.)
 - [ ] Smarter NLP-based trigger detection
